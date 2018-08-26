@@ -59,10 +59,10 @@ public:
   VectorXd weights_;
 
   ///* State dimension
-  int n_x_;
+  unsigned n_x_;
 
   ///* Augmented state dimension
-  int n_aug_;
+  unsigned n_aug_;
 
   ///* Sigma point spreading parameter
   double lambda_;
@@ -102,6 +102,12 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+private:
+  /**
+   * Generates the sigma points
+   */
+  void GenerateAndPredictSigmaPoints(double delta_t);
 };
 
 #endif /* UKF_H */
