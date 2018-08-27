@@ -72,7 +72,6 @@ UKF::~UKF() {}
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   /**
   TODO:
-
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
@@ -160,7 +159,6 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
-  cout<<"Update Lidar"<<endl;
   unsigned n_z = 2;
   MatrixXd Zsig(n_z,2*n_aug_+1);
   for (unsigned i = 0; i<2*n_aug_+1;++i) {  //2n+1 simga points
@@ -229,7 +227,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   You'll also need to calculate the radar NIS.
   */
   //transform sigma points into measurement space
-  cout<<"Update Radar"<<endl;
   unsigned n_z = 3;
   MatrixXd Zsig(n_z,2*n_aug_+1);
   for (unsigned i = 0; i<2*n_aug_+1;++i) {  //2n+1 simga points
