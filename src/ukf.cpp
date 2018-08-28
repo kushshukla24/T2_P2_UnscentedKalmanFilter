@@ -19,10 +19,10 @@ UKF::UKF() {
   use_radar_ = true;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.5;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.6;
+  std_yawdd_ = 1;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -157,63 +157,48 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   Complete this function! Use lidar data to update the belief about the object's
   position. Modify the state vector, x_, and covariance, P_.
 
-  You'll also need to calculate the lidar NIS.
-  */
-  int n_z = 2;
-  MatrixXd Zsig(n_z,2*n_aug_+1);
-  for (int i = 0; i<2*n_aug_+1;++i) {  //2n+1 simga points
-    // measurement model
-    Zsig(0,i) = Xsig_pred_(0,i);                       //p_x
-    Zsig(1,i) = Xsig_pred_(1,i);                       //p_y
-  }
+	You'll also need to calculate the lidar NIS.
+	*/
 
-  //mean predicted measurement
-  VectorXd z_pred = VectorXd(n_z);
-  z_pred.fill(0.0);
-  for (int i=0; i < 2*n_aug_+1; ++i) {
-      z_pred = z_pred + weights_(i) * Zsig.col(i);
-  }
+	int n_z = 2;
+	MatrixXd Zsig(n_z, 2 * n_aug_ + 1);
+	for (int i = 0; i < 2 * n_aug_ + 1;++i) {  //2n+1 simga points
+		Zsig(0, i) = Xsig_pred_(0, i);                       //p_x
+		Zsig(1, i) = Xsig_pred_(1, i);                       //p_y
+	}
 
-  //innovation covariance matrix S
-  MatrixXd S = MatrixXd(n_z,n_z);
-  S.fill(0.0);
-  for (int i = 0; i<2*n_aug_+1; ++i) {  //2n+1 simga points
-    //residual
-    VectorXd z_diff = Zsig.col(i) - z_pred;
+	//mean predicted measurement
+	VectorXd z_pred = VectorXd(n_z);
+	z_pred.fill(0.0);
+	for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
+		z_pred = z_pred + weights_(i) * Zsig.col(i);
+	}
 
-    S = S + weights_(i) * z_diff * z_diff.transpose();
-  }
+	VectorXd y = meas_package.raw_measurements_ - z_pred;
 
+	MatrixXd H = MatrixXd(n_z, n_x_);
+	H.fill(0.0);
+	H(0, 0) = 1.;
+	H(1, 1) = 1.;
 
-  //add measurement noise covariance matrix
-  MatrixXd R = MatrixXd(n_z,n_z);
-  R <<    std_laspx_*std_laspx_, 0,
-          0, std_laspy_*std_laspy_;
-  S = S + R;
+	MatrixXd R = MatrixXd(n_z, n_z);
+	R << std_laspx_*std_laspx_, 0,
+			0, std_laspy_*std_laspy_;
 
-  MatrixXd Tc = MatrixXd(n_x_, n_z);
-  Tc.fill(0.0);
-  for (int i = 0; i<2*n_aug_+1;++i) {  //2n+1 simga points
-    VectorXd z_diff = Zsig.col(i) - z_pred;
+  MatrixXd Ht = H.transpose();
+  MatrixXd S = H * P_ * Ht + R;
+  MatrixXd Si = S.inverse();
+  MatrixXd K = P_ * Ht * Si;
 
-    // state difference
-    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+	//new estimate
+	x_ = x_ + (K * y);
+	MatrixXd I = MatrixXd::Identity(n_x_, n_x_);
+	P_ = (I - K * H) * P_;
 
-    Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
-  }
+	VectorXd NIS_laser = (meas_package.raw_measurements_ - z_pred).transpose() * S.inverse() *
+		(meas_package.raw_measurements_ - z_pred);
 
-  //Kalman gain K;
-  MatrixXd K = Tc * S.inverse();
-
-  //residual
-  VectorXd z_diff = meas_package.raw_measurements_ - z_pred;
-
-  //update state mean and covariance matrix
-  x_ = x_ + K * z_diff;
-  P_ = P_ - K*S*K.transpose();
-
-  //NIS_laser_ = (measurement_pack.raw_measurements_ - z_pred).transpose() * S.inverse() *
-	//	(measurement_pack.raw_measurements_ - z_pred);
+	cout << NIS_laser << endl;
 }
 
 /**
@@ -308,8 +293,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
 
-  //NIS_radar_ = (measurement_pack.raw_measurements_ - z_pred).transpose() * S.inverse() *
-	//	(measurement_pack.raw_measurements_ - z_pred);
+  VectorXd NIS_radar = (meas_package.raw_measurements_ - z_pred).transpose() * S.inverse() *
+	  (meas_package.raw_measurements_ - z_pred);
+	  
+  cout<<NIS_radar<<endl;
 }
 
 
